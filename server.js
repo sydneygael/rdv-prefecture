@@ -3,20 +3,51 @@ var request = require('request');
 var exec = require('child_process').execFile;
 var jar = request.jar();
 
-var url = 'http://www.seine-saint-denis.gouv.fr/booking/create/2616/0';
-var wait = 5;
+const express = require('express')
+const app = express()
+const port = process.env.PORT || 8080;
 
-function isRdvDisponible(callback) {
+app.get('/', (req, res) => {
+  res.send('Hello World!');
+})
+
+app.get('/checkRDV', (req, res) => {
+    isRdvDisponible('planning23018',function(message, ok) {
+        var end = new Date();
+
+        // on affiche le resultat
+        console.log(moment().format('YYYY-MM-DD HH:mm:ss')+' '+(String(end-start).padStart(6, ' '))+'ms '+message);
+
+        // si un rdv est disponible :
+        if (ok)  { 
+                    res.send('RDV OK!'); 
+                 } else {
+                     res.send('Pas de RDV!'); 
+                 }
+    });
+})
+
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`)
+})
+
+var url = 'http://www.essonne.gouv.fr/booking/create/23014/1'
+var wait = 300;
+
+function isRdvDisponible(elementId,callback) {
+    //cocher un guichet 
+    document.getElementById(elementID).checked = true;
+    
     request({
         url: url,
         method: 'post',
         form: {
             condition: 'on',
-            nextButton: 'Effectuer une demande de rendez-vous',
+            nextButton: 'Etape suivante',
         },
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
-            'Referer': 'http://www.seine-saint-denis.gouv.fr/booking/create/2616/0'
+            'Referer': 'http://www.essonne.gouv.fr/booking/create/23014/1'
         },
         jar: jar
     }, function(err, response, body) {
@@ -27,7 +58,7 @@ function isRdvDisponible(callback) {
         
         // analyse la page obtenue
         body = body.toLowerCase();
-        var nordv = body.indexOf('plus de plage horaire') != -1;
+        var nordv = body.indexOf('Il n\'existe plus de plage horaire libre pour votre demande de rendez-vous. Veuillez recommencer ultérieurement.') != -1;
         var formulairevisible = body.indexOf('nextButton') != -1;
         var plante = body.indexOf('site indisponible') != -1 || body.indexOf('maintenance') != -1;
 
@@ -39,7 +70,7 @@ function isRdvDisponible(callback) {
 
 function startWatch() {
     var start = new Date();
-    isRdvDisponible(function(message, ok) {
+    isRdvDisponible('planning23018',function(message, ok) {
         var end = new Date();
 
         // on affiche le resultat
